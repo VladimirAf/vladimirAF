@@ -1,0 +1,23 @@
+version: "3.1"
+intents:
+  - greet
+  - ask_ticket
+  - ask_docs
+  - out_of_scope
+
+entities: []
+
+slots: {}
+
+actions:
+  - action_rag_query
+
+responses:
+  utter_greet:
+    - text: "Привет! Я помогу с тикетами и документацией. Задай вопрос."
+  utter_fallback:
+    - text: "Не уверена, переформулируй, пожалуйста."
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
