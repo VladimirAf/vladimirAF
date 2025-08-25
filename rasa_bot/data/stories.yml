@@ -1,0 +1,16 @@
+version: "3.1"
+stories:
+- story: greet and help
+  steps:
+  - intent: greet
+  - action: utter_greet
+
+- story: docs query
+  steps:
+  - intent: ask_docs
+  - action: action_rag_query
+
+- story: ticket intent route
+  steps:
+  - intent: ask_ticket
+  - action: action_rag_query

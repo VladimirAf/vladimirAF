@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  rag:
+    build: ./rag_service
+    container_name: rag_service
+    ports:
+      - "8000:8000"
+    environment:
+      - DOCS_DIR=/app/data_docs
+      - INDEX_PATH=/app/faiss_index/index.faiss
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - OPENAI_API_KEY
+    volumes:
+      - ./rag_service:/app
+      - ./data_docs:/app/data_docs
+      - ./faiss_index:/app/faiss_index
+      - ./.env:/app/.env:ro
+
+  rasa:
+    image: rasa/rasa:3.6.14-full
+    container_name: rasa_server
+    working_dir: /app
+    command: bash -c "rasa train --quiet && rasa run --enable-api --cors '*' --debug -p 5005"
+    ports:
+      - "5005:5005"
+    environment:
+      - ACTION_SERVER_URL=http://actions:5055
+    volumes:
+      - ./rasa_bot:/app
+    depends_on:
+      - rag
+
+  actions:
+    image: rasa/rasa-sdk:3.6.2
+    container_name: rasa_actions
+    working_dir: /app
+    command: bash -c "pip install -r /app/requirements.txt && rasa run actions --port 5055 --debug"
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./rasa_bot/actions:/app/actions
+      - ./rasa_bot/actions/requirements.txt:/app/requirements.txt
+    depends_on:
+      - rasa
+      - rag
+
+volumes:
+  faiss_index:
+    driver: local

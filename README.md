@@ -1,14 +1,40 @@
-Hi ![](https://user-images.githubusercontent.com/18350557/176309783-0785949b-9127-417c-8b55-ab5a4333674e.gif)My name is Vladimir
-================================================================================================================================
+# RAG + Rasa Ticket Assistant
 
-Web developer
--------------
+Stack: Haystack (FAISS) + FastAPI service for RAG, Rasa 3.x bot with custom action.
 
-EDUCATION University of the Higher Educational Institution of the Armed Forces of the Russian Federation SPECIALIZATION - web programmer development of the online store and creation of new functionality
+## Quick start
 
-* 🌍  I'm based in Moscow
-* 🖥️  See my portfolio at [work experience](http://www.linkedin.com/in/vladimir-afanasev-legerartis-15450002022024da/)
-* ✉️  You can contact me at [https://t.me/ladokk](mailto:https://t.me/ladokk)
-* 🚀  I'm currently working on [online store](http://neverlate-shop.com/)
-* 🧠  I'm learning neural networks and creating an analogue to the "notion" program
-* 🤝  I'm open to collaborating on note aggregator
+1. Put your documents into `data_docs/` (plain text/markdown preferred).
+2. Start services:
+```bash
+bash scripts/run_all.sh
+```
+3. Trigger first ingestion:
+```bash
+bash scripts/update.sh
+```
+4. Chat with Rasa HTTP API (or via `rasa shell` inside the container):
+```bash
+curl -s "http://localhost:5005/webhooks/rest/webhook" \
+  -H 'Content-Type: application/json' \
+  -d '{"sender":"test","message":"найди инструкцию по установке"}' | jq .
+```
+
+## Daily updates
+- Add new files to `data_docs/` or modify existing ones.
+- Run `bash scripts/update.sh` or call POST `/ingest` on `http://localhost:8000`.
+- Only changed/new files are embedded and indexed (sha256-based incremental).
+
+## Environment
+- Configure `.env` if needed (e.g., `OPENAI_API_KEY` for future LLM readers).
+- Embedding model: `sentence-transformers/all-MiniLM-L6-v2`.
+
+## Folders
+- `rag_service/`: FastAPI Haystack service
+- `rasa_bot/`: Rasa project (stories, NLU, domain, actions)
+- `data_docs/`: Your source documents
+- `faiss_index/`: Persistent FAISS index and metadata
+
+## Notes
+- First run may download models (DPR/Reader). Keep internet access enabled.
+- To rebuild: `docker compose build --no-cache`.
