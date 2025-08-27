@@ -6,9 +6,9 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
-docker compose build
+docker-compose build
 
-docker compose up -d
+docker-compose up -d
 
 echo "Services started:"
-docker compose ps
+docker-compose ps

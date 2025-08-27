@@ -1,21 +1,22 @@
 language: ru
 pipeline:
-  - name: WhitespaceTokenizer
-  - name: RegexFeaturizer
-  - name: LexicalSyntacticFeaturizer
-  - name: CountVectorsFeaturizer
-  - name: CountVectorsFeaturizer
-    analyzer: char_wb
-    min_ngram: 1
-    max_ngram: 4
-  - name: DIETClassifier
-    epochs: 60
-  - name: EntitySynonymMapper
-  - name: ResponseSelector
-    epochs: 60
+- name: WhitespaceTokenizer
+- name: RegexFeaturizer
+- name: LexicalSyntacticFeaturizer
+- name: CountVectorsFeaturizer
+- name: CountVectorsFeaturizer
+  analyzer: char_wb
+  min_ngram: 1
+  max_ngram: 4
+- name: DIETClassifier
+  epochs: 60
+- name: EntitySynonymMapper
+- name: ResponseSelector
+  epochs: 60
 policies:
-  - name: RulePolicy
-  - name: MemoizationPolicy
-  - name: TEDPolicy
-    max_history: 5
-    epochs: 50
+- name: RulePolicy
+- name: MemoizationPolicy
+- name: TEDPolicy
+  max_history: 5
+  epochs: 50
+assistant_id: 20250826-161150-beige-contract
