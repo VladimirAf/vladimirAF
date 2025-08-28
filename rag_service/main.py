@@ -30,6 +30,11 @@ INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="RAG Service", version="0.1.0")
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "faiss_available": FAISS_AVAILABLE}
+
+
 class IngestRequest(BaseModel):
     force_recreate: bool = False
 
@@ -75,77 +80,109 @@ def get_document_store():
     if _GLOBAL_STORE is not None:
         return _GLOBAL_STORE
 
-    if FAISS_AVAILABLE:
-        store = FAISSDocumentStore(
-            faiss_index_factory_str="Flat",
-            embedding_dim=384,
-            sql_url="sqlite:///faiss_index/faiss.db",
-            index="document",
-            return_embedding=True,
-            similarity="cosine",
-        )
-    else:
-        store = InMemoryDocumentStore(embedding_dim=384, return_embedding=True, similarity="cosine")
-    _GLOBAL_STORE = store
-    return store
+    try:
+        if FAISS_AVAILABLE:
+            print("Initializing FAISS document store...")
+            store = FAISSDocumentStore(
+                faiss_index_factory_str="Flat",
+                embedding_dim=384,
+                sql_url="sqlite:///faiss_index/faiss.db",
+                index="document",
+                return_embedding=True,
+                similarity="cosine",
+            )
+            print("FAISS document store initialized successfully")
+        else:
+            print("FAISS not available, using InMemory document store...")
+            store = InMemoryDocumentStore(embedding_dim=384, return_embedding=True, similarity="cosine")
+            print("InMemory document store initialized successfully")
+        _GLOBAL_STORE = store
+        return store
+    except Exception as e:
+        print(f"Error initializing document store: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def get_retriever_reader(document_store):
-    retriever = EmbeddingRetriever(
-        document_store=document_store,
-        embedding_model=EMBEDDING_MODEL,
-        use_gpu=False,
-        model_format="sentence_transformers",
-    )
-    reader = FARMReader(model_name_or_path="deepset/roberta-base-squad2", use_gpu=False)
-    return retriever, reader
+    try:
+        print(f"Initializing retriever with model: {EMBEDDING_MODEL}")
+        retriever = EmbeddingRetriever(
+            document_store=document_store,
+            embedding_model=EMBEDDING_MODEL,
+            use_gpu=False,
+            model_format="sentence_transformers",
+        )
+        print("Retriever initialized successfully")
+        
+        print("Initializing reader with model: deepset/roberta-base-squad2")
+        reader = FARMReader(model_name_or_path="deepset/roberta-base-squad2", use_gpu=False)
+        print("Reader initialized successfully")
+        
+        return retriever, reader
+    except Exception as e:
+        print(f"Error initializing retriever/reader: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @app.post("/ingest")
 def ingest(req: IngestRequest):
-    document_store = get_document_store()
-    retriever, _ = get_retriever_reader(document_store)
+    try:
+        document_store = get_document_store()
+        retriever, _ = get_retriever_reader(document_store)
 
-    if req.force_recreate:
-        document_store.delete_documents()
+        if req.force_recreate:
+            document_store.delete_documents()
 
-    hash_db = load_hash_db()
+        hash_db = load_hash_db()
 
-    files = []
-    for path in DOCS_DIR.rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            files.append(path)
+        files = []
+        for path in DOCS_DIR.rglob("*"):
+            if path.is_file() and not path.name.startswith("."):
+                files.append(path)
 
-    new_or_changed = []
-    for path in files:
-        digest = compute_file_sha256(path)
-        key = str(path.relative_to(DOCS_DIR))
-        if hash_db.get(key) != digest:
-            new_or_changed.append((key, path, digest))
+        new_or_changed = []
+        for path in files:
+            try:
+                digest = compute_file_sha256(path)
+                key = str(path.relative_to(DOCS_DIR))
+                if hash_db.get(key) != digest:
+                    new_or_changed.append((key, path, digest))
+            except Exception as e:
+                print(f"Error processing file {path}: {e}")
 
-    docs_to_write = []
-    for key, path, digest in new_or_changed:
-        meta = {"source": key, "sha256": digest}
-        try:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
-            text = ""
-        if text.strip():
-            docs_to_write.append({"content": text, "meta": meta})
+        docs_to_write = []
+        for key, path, digest in new_or_changed:
+            meta = {"source": key, "sha256": digest}
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception as e:
+                print(f"Error reading file {path}: {e}")
+                text = ""
+            if text.strip():
+                docs_to_write.append({"content": text, "meta": meta})
 
-    if docs_to_write:
-        document_store.write_documents(docs_to_write)
-        document_store.update_embeddings(retriever)
-        for key, _, digest in new_or_changed:
-            hash_db[key] = digest
-        save_hash_db(hash_db)
+        if docs_to_write:
+            document_store.write_documents(docs_to_write)
+            document_store.update_embeddings(retriever)
+            for key, _, digest in new_or_changed:
+                hash_db[key] = digest
+            save_hash_db(hash_db)
 
-    return {
-        "ingested_files": [key for key, _, _ in new_or_changed],
-        "total_files": len(files),
-        "added": len(docs_to_write),
-        "faiss": FAISS_AVAILABLE,
-    }
+        return {
+            "ingested_files": [key for key, _, _ in new_or_changed],
+            "total_files": len(files),
+            "added": len(docs_to_write),
+            "faiss": FAISS_AVAILABLE,
+        }
+    except Exception as e:
+        print(f"Error in ingest endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @app.post("/query", response_model=QueryResponse)
