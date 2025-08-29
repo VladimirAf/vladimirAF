@@ -9,7 +9,7 @@ services:
     environment:
       - DOCS_DIR=/app/data_docs
       - INDEX_PATH=/app/faiss_index/index.faiss
-      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - EMBEDDING_MODEL=text-embedding-ada-002
       - OPENAI_API_KEY
     volumes:
       - ./rag_service:/app

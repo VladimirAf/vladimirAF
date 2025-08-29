@@ -22,7 +22,7 @@ load_dotenv()
 
 DOCS_DIR = Path(os.getenv("DOCS_DIR", "/app/data_docs"))
 INDEX_PATH = Path(os.getenv("INDEX_PATH", "/app/faiss_index/index.faiss"))
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
 
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -85,7 +85,7 @@ def get_document_store():
             print("Initializing FAISS document store...")
             store = FAISSDocumentStore(
                 faiss_index_factory_str="Flat",
-                embedding_dim=384,
+                embedding_dim=1536,
                 sql_url="sqlite:///faiss_index/faiss.db",
                 index="document",
                 return_embedding=True,
@@ -94,7 +94,7 @@ def get_document_store():
             print("FAISS document store initialized successfully")
         else:
             print("FAISS not available, using InMemory document store...")
-            store = InMemoryDocumentStore(embedding_dim=384, return_embedding=True, similarity="cosine")
+            store = InMemoryDocumentStore(embedding_dim=1536, return_embedding=True, similarity="cosine")
             print("InMemory document store initialized successfully")
         _GLOBAL_STORE = store
         return store
@@ -112,7 +112,7 @@ def get_retriever_reader(document_store):
             document_store=document_store,
             embedding_model=EMBEDDING_MODEL,
             use_gpu=False,
-            model_format="sentence_transformers",
+            model_format="openai",
         )
         print("Retriever initialized successfully")
         
