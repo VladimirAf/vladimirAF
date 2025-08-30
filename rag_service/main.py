@@ -15,7 +15,7 @@ except Exception:
     FAISS_AVAILABLE = False
 
 from haystack.document_stores import InMemoryDocumentStore
-from haystack.nodes import EmbeddingRetriever, FARMReader
+from haystack.nodes import EmbeddingRetriever, TransformersReader
 from haystack.pipelines import ExtractiveQAPipeline
 
 load_dotenv()
@@ -117,7 +117,7 @@ def get_retriever_reader(document_store):
         print("Retriever initialized successfully")
         
         print("Initializing reader with model: deepset/roberta-base-squad2")
-        reader = FARMReader(model_name_or_path="deepset/roberta-base-squad2", use_gpu=False)
+        reader = TransformersReader(model_name_or_path="deepset/roberta-base-squad2", use_gpu=False)
         print("Reader initialized successfully")
         
         return retriever, reader
